@@ -1,10 +1,9 @@
-#include <iostream>
-  using std::cout;
-  using std::cerr;
-  using std::endl;
+#include <nihttpd/nihttpd.h>
+
+using namespace nihttpd;
 
 int main( int argc, char *argv[] ){
-	cout << "Hello, world!" << endl;
+	server serv;
 
 	return 0;
 }
