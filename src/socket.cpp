@@ -58,3 +58,62 @@ connection listener::accept_client( void ){
 connection::connection( int s ){
 	sock = s;
 }
+
+void connection::disconnect( void ){
+	close( sock );
+}
+
+// TODO: more efficient implementation of the following functions,
+//       will be a performance bottleneck
+char connection::recv_char( void ){
+	char ret = 0;
+	recv( sock, &ret, 1, 0 );
+
+	return ret;
+}
+
+void connection::send_char( char c ){
+	while ( send( sock, &c, 1, 0 ) == 0 );
+}
+
+void connection::send_line( const std::string &line ){
+	send_str( line );
+	send_str( "\r\n" );
+}
+
+void connection::send_str( const std::string &str ){
+	for ( char c : str ){
+		send_char( c );
+	}
+}
+
+std::string connection::recv_line( void ){
+	std::string ret = "";
+	char c = recv_char();
+
+	// TODO: maximum line length
+	while ( c != '\r' && c != '\n' ){
+		ret += c;
+		c = recv_char();
+	}
+
+	if ( c == '\r' ){
+		// TODO: check that the next character is a newline maybe,
+		//       or possibly have a 'strict' config setting that toggles
+		//       loose parsing behavior
+		recv_char();
+	}
+
+	return ret;
+}
+
+std::string connection::client_ip( void ){
+	char buf[INET6_ADDRSTRLEN];
+	struct sockaddr_in info;
+	socklen_t len = sizeof( info );
+
+	getpeername( sock, (struct sockaddr *)&info, &len );
+	inet_ntop( info.sin_family, &info.sin_addr, buf, sizeof buf );
+
+	return buf;
+}
