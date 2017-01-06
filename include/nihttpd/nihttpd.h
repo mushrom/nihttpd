@@ -33,13 +33,11 @@ namespace nihttpd {
 	class router {
 		public:
 			typedef void (*handler)( http_request req, connection conn );
-			router( std::string pref, std::string dest, handler hand );
-			void dispatch( http_request req, connection conn );
+			router( std::string pref, std::string dest );
+			virtual void dispatch( http_request req, connection conn );
 
 			std::string prefix;
 			std::string destination;
-		private:
-			handler handle;
 	};
 }
 
