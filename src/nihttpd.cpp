@@ -42,8 +42,14 @@ static std::string gen_page( http_request request ){
 
 	return
 		"<!doctype html>"
-		"<html><head><title>nihttpd test page</title></head><body>"
-		"<b>sup, sent at " + (std::string)ctime(&tt) + "</b><br />"
+		"<html><head><title>nihttpd test page</title>"
+		"<style>"
+		"body { max-width: 800px; margin-left: auto; margin-right: auto;"
+		"       font-family: sans;"
+		"}"
+		"</style>"
+		"</head><body>"
+		"<b>nihttpd test</b><br/>" + (std::string)ctime(&tt) + "<br />"
 		"<hr />"
 		"action: "   + request.action + "<br/>"
 		"location: " + request.location + "<br/>"
