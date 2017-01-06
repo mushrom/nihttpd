@@ -82,8 +82,20 @@ void connection::send_line( const std::string &line ){
 }
 
 void connection::send_str( const std::string &str ){
-	for ( char c : str ){
-		send_char( c );
+	unsigned total_sent = 0;
+
+	while ( total_sent < str.length() ){
+		unsigned to_send = str.length() - total_sent;
+		int ret = send( sock, str.c_str() + total_sent, to_send, 0 );
+
+		if ( ret >= 0 ){
+			total_sent += ret;
+
+		} else {
+			break;
+			// TODO; throw exception
+			;
+		}
 	}
 }
 

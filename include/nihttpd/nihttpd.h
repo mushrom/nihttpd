@@ -4,7 +4,8 @@
 #include <nihttpd/http.h>
 #include <string>
 #include <thread>
-#include <stdint.h>
+#include <list>
+#include <memory>
 
 namespace nihttpd {
 	enum class urgency {
@@ -16,13 +17,17 @@ namespace nihttpd {
 		critical,
 	};
 
+	class router;
+
 	class server {
 		public:
 			server( );
 			void log( urgency level, const std::string &msg );
+			void add_route( std::unique_ptr<router> rut );
+			router *find_route( std::string location );
 
 		private:
-			void listen( const std::string &host, uint16_t port );
+			std::list<std::unique_ptr<router>> routes;
 	};
 
 	class router {
@@ -31,9 +36,9 @@ namespace nihttpd {
 			router( std::string pref, std::string dest, handler hand );
 			void dispatch( http_request req, connection conn );
 
-		private:
 			std::string prefix;
 			std::string destination;
+		private:
 			handler handle;
 	};
 }
