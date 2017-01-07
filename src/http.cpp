@@ -34,6 +34,8 @@ http_request::http_request( connection conn ){
 		throw http_error( HTTP_400_BAD_REQUEST );
 	}
 
+	location = url_decode( location );
+
 	temp = conn.recv_line();
 
 	while ( temp != "" ) {
@@ -97,4 +99,35 @@ std::string nihttpd::status_string( unsigned status ){
 		case HTTP_404_NOT_FOUND:   return "404 Not Found";
 		default: return std::to_string( status ) + "TODO implement this";
 	}
+}
+
+static inline char url_decode_char( char a, char b ){
+	static std::string hextab = "0123456789abcdef";
+
+	unsigned upper = hextab.find(a);
+	unsigned lower = hextab.find(b);
+
+	if ( upper == std::string::npos || lower == std::string::npos ){
+		// TODO: handle this properly
+		return '?';
+	}
+
+	return (upper << 4) | lower;
+}
+
+// copies a string, while decoding percent hex values
+std::string nihttpd::url_decode( std::string &str ){
+	std::string ret = "";
+
+	for ( auto c = str.begin(); c != str.end(); c++ ){
+		if ( *c == '%' ){
+			ret += url_decode_char( *(c + 1), *(c + 2));
+			c += 2;
+
+		} else {
+			ret += *c;
+		}
+	}
+
+	return ret;
 }

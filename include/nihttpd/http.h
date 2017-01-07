@@ -45,6 +45,7 @@ namespace nihttpd {
 	};
 
 	std::string status_string( unsigned status );
+	std::string url_decode( std::string &str );
 }
 
 #endif
