@@ -13,6 +13,10 @@ static std::map<std::string, std::string> content_types = {
 	{ ".css",  "text/css"  },
 	{ ".txt",  "text/plain" },
 	{ ".jpg",  "image/jpeg" },
+	{ ".png",  "image/png" },
+	{ ".mp3",  "audio/mpeg" },
+	{ ".ogg",  "audio/ogg" },
+	{ ".mkv",  "video/x-matroska" },
 };
 
 static unsigned get_file_size( std::ifstream &stream ){
@@ -50,18 +54,19 @@ void file_router::dispatch( http_request req, connection conn ){
 	}
 
 	unsigned length = get_file_size( document );
-	std::unique_ptr<char> buf( new char[length + 1] );
-	document.read( buf.get(), length );
 
-	buf.get()[length] = '\0';
-
-	response.content = buf.get();
 	response.headers["Connection"]     = "close";
 	response.headers["Content-Type"]   = get_content_type( translated );
-	response.headers["Content-Length"] = std::to_string( response.content.size() );
+	response.headers["Content-Length"] = std::to_string( length );
 	response.headers["Server"]         = "nihttpd/0.0.1";
+	response.send_headers( conn );
 
-	response.send_to( conn );
+	std::vector<char> foo(0x1000);
+
+	while ( document.good() ){
+		document.read( foo.data(), 0x1000 );
+		response.send_content( conn, foo );
+	}
 }
 
 std::string file_router::translate_filename( std::string filename ){
@@ -74,6 +79,10 @@ std::string file_router::translate_filename( std::string filename ){
 		auto pos = temp.begin();
 		temp.erase( pos + loc, pos + loc + rm_str.length() );
 		loc = temp.find( rm_str );
+	}
+
+	if ( *temp.rbegin() == '/' ){
+		temp += "index.html";
 	}
 
 	return temp;

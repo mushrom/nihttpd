@@ -1,6 +1,7 @@
 #include <nihttpd/socket.h>
 #include <chrono>
 #include <thread>
+#include <vector>
 
 // network stuff
 #include <sys/types.h>
@@ -73,7 +74,7 @@ char connection::recv_char( void ){
 }
 
 void connection::send_char( char c ){
-	while ( send( sock, &c, 1, 0 ) == 0 );
+	while ( send( sock, &c, 1, MSG_NOSIGNAL ) == 0 );
 }
 
 void connection::send_line( const std::string &line ){
@@ -86,7 +87,25 @@ void connection::send_str( const std::string &str ){
 
 	while ( total_sent < str.length() ){
 		unsigned to_send = str.length() - total_sent;
-		int ret = send( sock, str.c_str() + total_sent, to_send, 0 );
+		int ret = send( sock, str.c_str() + total_sent, to_send, MSG_NOSIGNAL );
+
+		if ( ret >= 0 ){
+			total_sent += ret;
+
+		} else {
+			break;
+			// TODO; throw exception
+			;
+		}
+	}
+}
+
+void connection::send_data( const std::vector<char> &vec ){
+	unsigned total_sent = 0;
+
+	while ( total_sent < vec.size() ){
+		unsigned to_send = vec.size() - total_sent;
+		int ret = send( sock, vec.data() + total_sent, to_send, MSG_NOSIGNAL );
 
 		if ( ret >= 0 ){
 			total_sent += ret;

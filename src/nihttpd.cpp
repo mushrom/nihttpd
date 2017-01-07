@@ -12,13 +12,15 @@ static http_response gen_error_page( http_error err ){
 	http_response ret;
 	std::string str = status_string( err.error_num );
 
-	ret.status = err.error_num;
-	ret.content =
+	std::string cont =
 		"<!doctype html><html>"
 		"<head><title>" + str + "</title></head>"
 		"<body><h2>" + str + "</h2>"
 		"</body></html>";
 
+	ret.set_content( cont );
+
+	ret.status = err.error_num;
 	ret.headers["Connection"]     = "close";
 	ret.headers["Content-Type"]   = "text/html";
 	ret.headers["Content-Length"] = std::to_string( ret.content.size() );
@@ -51,7 +53,7 @@ void worker( server *serv, connection conn ){
 		res.send_to( conn );
 	}
 
-	serv->log( urgency::debug, "  closing connection with " + conn.client_ip() );
+	serv->log( urgency::debug, "  closing connection" );
 	conn.disconnect();
 }
 
@@ -64,9 +66,9 @@ server::server( ){
 		 foo = new listener( "127.0.0.1", "8082" );
 
 		 typedef std::unique_ptr<router> routerptr;
+		 add_route( routerptr( new file_router("/", "/tmp/www/") ));
 		 add_route( routerptr( new test_router("/test/") ));
 		 add_route( routerptr( new test_router("/blarg") ));
-		 add_route( routerptr( new file_router("/meh/", "/tmp/www/") ));
 
 	} catch ( const std::string &msg ){
 		log( urgency::high, "exception in listener: " + msg );

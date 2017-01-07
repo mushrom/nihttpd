@@ -29,10 +29,13 @@ namespace nihttpd {
 	class http_response {
 		public:
 			void send_to( connection conn );
+			void send_headers( connection conn );
+			void send_content( connection conn, const std::vector<char> &vec );
+			void set_content( std::string &str );
 
-			std::string content;
-			key_val_t   headers;
-			unsigned    status = HTTP_200_OK;
+			std::vector<char> content;
+			key_val_t headers;
+			unsigned  status = HTTP_200_OK;
 	};
 
 	class http_error : public std::exception {

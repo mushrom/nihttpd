@@ -64,7 +64,8 @@ static std::string gen_page( http_request request ){
 void test_router::dispatch(http_request req, connection conn){
 	http_response response;
 
-	response.content = gen_page( req );
+	std::string page = gen_page(req);
+	response.set_content( page );
 
 	response.headers["Connection"]     = "close";
 	response.headers["Content-Type"]   = "text/html";

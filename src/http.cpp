@@ -65,7 +65,26 @@ void http_response::send_to( connection conn ){
 	}
 
 	conn.send_line( "" );
-	conn.send_str( content );
+	conn.send_data( content );
+}
+
+void http_response::send_headers( connection conn ){
+	conn.send_line( "HTTP/1.1 " + status_string( status ));
+
+	for ( const auto &x : headers ){
+		std::string temp = x.first + ": " + x.second;
+		conn.send_line( temp );
+	}
+
+	conn.send_line( "" );
+}
+
+void http_response::send_content( connection conn, const std::vector<char> &vec ){
+	conn.send_data( vec );
+}
+
+void http_response::set_content( std::string &str ){
+	content.assign( str.begin(), str.end() );
 }
 
 std::string nihttpd::status_string( unsigned status ){

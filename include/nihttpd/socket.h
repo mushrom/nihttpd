@@ -1,6 +1,7 @@
 #ifndef _NIHTTPD_SOCKET_H
 #define _NIHTTPD_SOCKET_H 1
 #include <string>
+#include <vector>
 #include <stdint.h>
 
 namespace nihttpd {
@@ -15,6 +16,7 @@ namespace nihttpd {
 			void send_char( char c );
 			void send_line( const std::string &line );
 			void send_str( const std::string &line );
+			void send_data( const std::vector<char> &vec );
 
 			std::string client_ip( void );
 
