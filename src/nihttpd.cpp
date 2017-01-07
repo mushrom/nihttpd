@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <nihttpd/test_route.h>
+#include <nihttpd/file_route.h>
 
 using namespace nihttpd;
 
@@ -62,7 +63,10 @@ server::server( ){
 	try {
 		 foo = new listener( "127.0.0.1", "8082" );
 
-		 add_route( std::unique_ptr<router>( new test_router("/test/") ));
+		 typedef std::unique_ptr<router> routerptr;
+		 add_route( routerptr( new test_router("/test/") ));
+		 add_route( routerptr( new test_router("/blarg") ));
+		 add_route( routerptr( new file_router("/meh/", "/tmp/www/") ));
 
 	} catch ( const std::string &msg ){
 		log( urgency::high, "exception in listener: " + msg );
