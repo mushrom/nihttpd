@@ -61,6 +61,10 @@ void file_router::dispatch( http_request req, connection conn ){
 	response.headers["Server"]         = "nihttpd/0.0.1";
 	response.send_headers( conn );
 
+	if ( req.action == "HEAD" ){
+		return;
+	}
+
 	std::vector<char> foo(0x1000);
 
 	while ( document.good() ){

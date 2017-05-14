@@ -14,7 +14,7 @@ static std::string strip_leading_spaces( std::string str ){
 
 bool is_valid_prelude( std::string action, std::string location, std::string version ){
 	// TODO: more extensive error checking
-	return (action == "GET" || action == "POST");
+	return (action == "GET" || action == "POST" || action == "HEAD");
 }
 
 http_request::http_request( connection conn ){
@@ -24,6 +24,8 @@ http_request::http_request( connection conn ){
 	std::getline( ss, action,   ' ' );
 	std::getline( ss, location, ' ' );
 	std::getline( ss, version );
+
+	std::cout << "[phead] head: " << temp << std::endl;
 
 	/*
 	std::cout << "[parse] action:   \"" << action <<   "\"" << std::endl;
@@ -52,6 +54,8 @@ http_request::http_request( connection conn ){
 			std::cout << "[phead] key: " << key << ", value: " << value << std::endl;
 			throw http_error( HTTP_400_BAD_REQUEST );
 		}
+
+		std::cout << "[phead] key: " << key << ", value: " << value << std::endl;
 
 		headers[key] = value;
 		temp = conn.recv_line();

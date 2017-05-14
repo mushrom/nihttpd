@@ -3,8 +3,6 @@
 #include <nihttpd/http.h>
 #include <iostream>
 
-#include <nihttpd/test_route.h>
-#include <nihttpd/file_route.h>
 
 using namespace nihttpd;
 
@@ -29,14 +27,14 @@ static http_response gen_error_page( http_error err ){
 	return ret;
 }
 
-void worker( server *serv, connection conn ){
+void server::worker( connection conn ){
 	try {
 		http_request request( conn );
-		router *route = serv->find_route( request.location );
+		router *route = find_route( request.location );
 
-		serv->log( urgency::normal,
-		           "  " + conn.client_ip() +
-		           ": " + request.action + " " + request.location );
+		log( urgency::normal,
+		     "  " + conn.client_ip() +
+		     ": " + request.action + " " + request.location );
 
 		if ( route == nullptr ){
 			throw http_error( HTTP_404_NOT_FOUND );
@@ -45,41 +43,48 @@ void worker( server *serv, connection conn ){
 		route->dispatch( request, conn );
 
 	} catch ( const http_error &err ){
-		serv->log( urgency::normal,
-		           "  " + conn.client_ip() + ": request aborted with error: "
-		           + status_string( err.error_num ));
+		log( urgency::normal,
+		     "  " + conn.client_ip() + ": request aborted with error: "
+		     + status_string( err.error_num ));
 
 		http_response res = gen_error_page( err );
 		res.send_to( conn );
 	}
 
-	serv->log( urgency::debug, "  closing connection" );
+	log( urgency::debug, "  closing connection" );
 	conn.disconnect();
 }
 
 server::server( ){
+}
+
+void server::start( const std::string &host, const std::string &port ){
 	log( urgency::info, "starting nihttpd" );
 
-	listener *foo;
-
 	try {
-		 foo = new listener( "127.0.0.1", "8082" );
-
-		 typedef std::unique_ptr<router> routerptr;
-		 add_route( routerptr( new file_router("/", "/tmp/www/") ));
-		 add_route( routerptr( new test_router("/test/") ));
-		 add_route( routerptr( new test_router("/blarg") ));
+		sock = new listener( host, port );
+		self = std::thread( &server::run, this );
 
 	} catch ( const std::string &msg ){
 		log( urgency::high, "exception in listener: " + msg );
 		throw;
 	}
 
+	running = true;
+}
+
+void server::wait( void ){
+	if ( running ){
+		self.join();
+	}
+}
+
+void server::run( void ){
 	while ( true ){
-		connection meh = foo->accept_client();
+		connection meh = sock->accept_client();
 		log( urgency::normal, "connection from " + meh.client_ip() );
 
-		std::thread thr( worker, this, meh );
+		std::thread thr( &server::worker, this, meh );
 		thr.detach();
 	}
 }
