@@ -21,6 +21,7 @@ static std::map<std::string, std::string> content_types = {
 	{ ".mp3",  "audio/mpeg" },
 	{ ".ogg",  "audio/ogg" },
 	{ ".mkv",  "video/x-matroska" },
+	{ ".pdf",  "application/pdf" },
 };
 
 static unsigned get_file_size( std::ifstream &stream ){
@@ -108,8 +109,6 @@ static std::string get_file_icon( std::string path ){
 		return "\xf0\x9f\x93\x81";
 
 	} else {
-		// default symbol, a 'face-up page' glyph
-
 		if ( type == "image/jpeg" || type == "image/png" ){
 			// framed picture glyph
 			return "\xf0\x9f\x96\xbc";
@@ -119,8 +118,14 @@ static std::string get_file_icon( std::string path ){
 			// single musical note glyph
 			return "\xf0\x9f\x8e\xb5";
 		}
+
+		if ( type == "application/pdf" ){
+			// open book glyph
+			return "\xf0\x9f\x93\x96";
+		}
 	}
 
+	// default symbol, a 'face-up page' glyph
 	return "\xf0\x9f\x93\x84";
 }
 
@@ -136,11 +141,21 @@ static std::string gen_human_size( size_t bytes ){
 	return std::to_string(bytes) + "B";
 }
 
+static bool trailing( std::string str, const char c ){
+	return !str.empty() && *(str.rbegin()) == c;
+}
+
+static std::string dirpath( std::string str ){
+	return str + (trailing(str, '/')? "" : "/");
+}
+
 static std::string gen_dir_listing( http_request req, std::string path ){
 	if ( !path_is_directory( path )){
 		return "<html><body><h1>wait what</h1></body></html>";
 	}
 
+	// TODO: add string sanitation once that's implemented
+	//       to avoid dumb security holes and page bugs
 	std::string ret =
 		"<!doctype html><head>"
 			"<title>Index of " + req.location + "</title>"
@@ -150,6 +165,9 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 				"body {"
 					"margin-left: auto;"
 					"margin-right: auto;"
+					"max-width: 800px;"
+					"font-family: sans;"
+					"padding: 5px;"
 				"}"
 				"table { width: 100%; margin: 0; padding: 0; }"
 				"tr, td { border-top: 1px dotted lightgrey; }"
@@ -158,12 +176,10 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 		"</head>"
 		"<body>"
 			"<div class=\"list_head\"><h3>Index of " + req.location + "</h3></div>"
-			//"<hr />"
 			"<table>"
 				"<tr class=\"table_head\">"
 					"<td></td>"
 					"<td><strong>name</strong></td>"
-					"<td><strong>type</strong></td>"
 					"<td><strong>size</strong></td>"
 				"</tr>"
 		;
@@ -178,17 +194,22 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 
 	while (( ent = readdir( dir ))){
 		std::string name( ent->d_name );
-		std::string temp = (req.location == "/")? req.location : req.location + "/";
-		std::string local_path = path + "/" + name;
+		std::string temp = dirpath(req.location);
+		std::string local_path = dirpath(path) + name;
 		std::string sizestr = gen_human_size( get_file_stat_size( local_path ));
-		std::string type = get_content_type( local_path );
 		std::string symbol = get_file_icon( local_path );
+
+		bool is_dir = path_is_directory( local_path );
+		std::string type = is_dir? "directory" : get_content_type( local_path );
 
 		ret +=
 			"<tr>"
 				"<td>" + symbol + "</td>"
-				"<td><a href=\"" + temp + name + "\">" + name + "</a></td>"
-				"<td><code>" + type + "</code></td>"
+				"<td>"
+					"<a href=\"" + temp + name + "\">" + name + "</a>"
+					"<br />"
+					"<small>" + type + "</small>"
+				"</td>"
 				"<td><code>" + sizestr + "</code></td>"
 			"</tr>"
 		;
