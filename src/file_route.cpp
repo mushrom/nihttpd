@@ -158,7 +158,7 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 	//       to avoid dumb security holes and page bugs
 	std::string ret =
 		"<!doctype html><head>"
-			"<title>Index of " + req.location + "</title>"
+			"<title>Index of " + sanitize(req.location) + "</title>"
 			"<meta name=\"viewport\" content=\"width=device-width, intial-scale=1.0\">"
 			"<meta charset=\"UTF-8\">"
 			"<style>"
@@ -175,7 +175,8 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 			"</style>"
 		"</head>"
 		"<body>"
-			"<div class=\"list_head\"><h3>Index of " + req.location + "</h3></div>"
+			"<div class=\"list_head\">"
+			"<h3>Index of " + sanitize(req.location) + "</h3></div>"
 			"<table>"
 				"<tr class=\"table_head\">"
 					"<td></td>"
@@ -206,7 +207,8 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 			"<tr>"
 				"<td>" + symbol + "</td>"
 				"<td>"
-					"<a href=\"" + temp + name + "\">" + name + "</a>"
+					"<a href=\"" + url_encode_path(temp) + url_encode_path(name) + "\">"
+						+ sanitize(name) + "</a>"
 					"<br />"
 					"<small>" + type + "</small>"
 				"</td>"
@@ -242,6 +244,10 @@ static void send_dir_listing( http_request req, connection conn, std::string pat
 }
 
 void file_router::dispatch( http_request req, connection conn ){
+	if ( !path_below_root( req.location )){
+		throw http_error( HTTP_403_FORBIDDEN );
+	}
+
 	std::string translated = translate_filename( req.location );
 
 	if ( !path_exists(translated) ){
@@ -262,7 +268,6 @@ void file_router::dispatch( http_request req, connection conn ){
 	}
 
 	if ( do_dir_listing ){
-		printf( "this is a directory!\n" );
 		send_dir_listing( req, conn, translated );
 
 	} else {

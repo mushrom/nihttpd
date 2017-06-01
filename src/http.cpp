@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <ctype.h>
 
 using namespace nihttpd;
 
@@ -100,6 +101,7 @@ std::string nihttpd::status_string( unsigned status ){
 	switch ( status ){
 		case HTTP_200_OK:          return "200 OK";
 		case HTTP_400_BAD_REQUEST: return "400 Bad Request";
+		case HTTP_403_FORBIDDEN:   return "403 Forbidden";
 		case HTTP_404_NOT_FOUND:   return "404 Not Found";
 		default: return std::to_string( status ) + "TODO implement this";
 	}
@@ -108,8 +110,8 @@ std::string nihttpd::status_string( unsigned status ){
 static inline char url_decode_char( char a, char b ){
 	static std::string hextab = "0123456789abcdef";
 
-	unsigned upper = hextab.find(a);
-	unsigned lower = hextab.find(b);
+	unsigned upper = hextab.find( tolower(a));
+	unsigned lower = hextab.find( tolower(b));
 
 	if ( upper == std::string::npos || lower == std::string::npos ){
 		// TODO: handle this properly
@@ -120,7 +122,7 @@ static inline char url_decode_char( char a, char b ){
 }
 
 // copies a string, while decoding percent hex values
-std::string nihttpd::url_decode( std::string &str ){
+std::string nihttpd::url_decode( const std::string &str ){
 	std::string ret = "";
 
 	for ( auto c = str.begin(); c != str.end(); c++ ){
@@ -134,4 +136,81 @@ std::string nihttpd::url_decode( std::string &str ){
 	}
 
 	return ret;
+}
+
+static inline std::string hex_to_string( unsigned long n ){
+	std::ostringstream ostr;
+	ostr << std::hex << n;
+	return ostr.str();
+}
+
+static inline char char_in( const char c, const std::string &xs ){
+	for ( const auto k : xs ){
+		if ( c == k ){
+			return k;
+		}
+	}
+
+	return false;
+}
+
+// URL encoding which doesn't encode the '/' character
+std::string nihttpd::url_encode_path( const std::string &str ){
+	std::string ret = "";
+
+	for ( const auto c : str ){
+		if ( isupper(c) || islower(c) || isdigit(c) || char_in(c, "-_.~/") ){
+			ret += c;
+
+		} else {
+			ret += "%" + hex_to_string(c);
+		}
+	}
+
+	return ret;
+}
+
+std::string nihttpd::sanitize( const std::string &str ){
+	std::string ret = "";
+
+	//for ( auto c = str.begin(); c != str.end(); c++ ){
+	for ( const auto c : str ){
+		switch (c) {
+			case '<':  ret += "&lt;"; break;
+			case '>':  ret += "&gt;"; break;
+			case '&':  ret += "&amp;"; break;
+			case '"':  ret += "&quot;"; break;
+			case '\'': ret += "&apos;"; break;
+			default:   ret += c; break;
+		}
+	}
+
+	return ret;
+}
+
+bool nihttpd::path_below_root( const std::string &str ){
+	int score = 0;
+
+	size_t start = 0;
+	size_t end = 0;
+	size_t last_end = 0;
+
+	while ( last_end != std::string::npos ){
+		end = str.find("/", start);
+		const std::string &token = str.substr(start, end - start);
+
+		last_end = end;
+		start    = end + 1;
+
+		score += (token == "..")? -1 :
+		         (token == ".")?   0 :
+		         (token == "")?    0 :
+		         /* otherwise */   1;
+
+		if ( score < 0 ){
+			return false;
+		}
+	}
+
+	return true;
 }

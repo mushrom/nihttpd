@@ -12,6 +12,7 @@ namespace nihttpd {
 	enum http_status_nums {
 		HTTP_200_OK          = 200,
 		HTTP_400_BAD_REQUEST = 400,
+		HTTP_403_FORBIDDEN   = 403,
 		HTTP_404_NOT_FOUND   = 404,
 	};
 
@@ -45,7 +46,10 @@ namespace nihttpd {
 	};
 
 	std::string status_string( unsigned status );
-	std::string url_decode( std::string &str );
+	std::string url_decode( const std::string &str );
+	std::string url_encode_path( const std::string &str );
+	std::string sanitize( const std::string &str );
+	bool        path_below_root( const std::string &str );
 }
 
 #endif
