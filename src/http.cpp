@@ -26,7 +26,7 @@ http_request::http_request( connection conn ){
 	std::getline( ss, location, ' ' );
 	std::getline( ss, version );
 
-	std::cout << "[phead] head: " << temp << std::endl;
+	//std::cout << "[phead] head: " << temp << std::endl;
 
 	/*
 	std::cout << "[parse] action:   \"" << action <<   "\"" << std::endl;
@@ -56,7 +56,7 @@ http_request::http_request( connection conn ){
 			throw http_error( HTTP_400_BAD_REQUEST );
 		}
 
-		std::cout << "[phead] key: " << key << ", value: " << value << std::endl;
+		//std::cout << "[phead] key: " << key << ", value: " << value << std::endl;
 
 		headers[key] = value;
 		temp = conn.recv_line();

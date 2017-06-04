@@ -217,6 +217,8 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 		;
 	}
 
+	closedir( dir );
+
 	ret += "</table>";
 	ret += "<hr /><small>nihttpd 0.0.1</small>";
 	ret += "</body></html>";
