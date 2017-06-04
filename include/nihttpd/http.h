@@ -50,6 +50,8 @@ namespace nihttpd {
 	std::string url_encode_path( const std::string &str );
 	std::string sanitize( const std::string &str );
 	bool        path_below_root( const std::string &str );
+	key_val_t   parse_get_fields( const std::string &location );
+	std::string strip_get_fields( const std::string &location );
 }
 
 #endif

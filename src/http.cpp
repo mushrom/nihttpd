@@ -37,7 +37,9 @@ http_request::http_request( connection conn ){
 		throw http_error( HTTP_400_BAD_REQUEST );
 	}
 
-	location = url_decode( location );
+	get_params = parse_get_fields( location );
+	location   = strip_get_fields( location );
+	location   = url_decode( location );
 
 	temp = conn.recv_line();
 
@@ -213,4 +215,31 @@ bool nihttpd::path_below_root( const std::string &str ){
 	}
 
 	return true;
+}
+
+// NOTE: This must be called before the path is url decoded!
+key_val_t nihttpd::parse_get_fields( const std::string &location ){
+	size_t get_start = location.find("?");
+
+	if ( get_start == std::string::npos ){
+		return {};
+	}
+
+	std::string args = location.substr( get_start + 1, std::string::npos );
+	// TODO: extract fields
+
+	key_val_t ret;
+	ret["asdf"] = url_decode(args);
+
+	return ret;
+}
+
+std::string nihttpd::strip_get_fields( const std::string &location ){
+	size_t get_start = location.find("?");
+
+	if ( get_start == std::string::npos ){
+		return location;
+	}
+
+	return location.substr(0, get_start);
 }
