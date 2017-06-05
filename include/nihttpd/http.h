@@ -10,16 +10,17 @@ namespace nihttpd {
 	typedef std::map<std::string, std::string> key_val_t;
 
 	enum http_status_nums {
-		HTTP_200_OK          = 200,
-		HTTP_400_BAD_REQUEST = 400,
-		HTTP_403_FORBIDDEN   = 403,
-		HTTP_404_NOT_FOUND   = 404,
+		HTTP_200_OK               = 200,
+		HTTP_400_BAD_REQUEST      = 400,
+		HTTP_403_FORBIDDEN        = 403,
+		HTTP_404_NOT_FOUND        = 404,
+		HTTP_413_ENTITY_TOO_LARGE = 413,
 	};
 
 	class http_request {
 		public:
 			// TODO: add another constructor to construct arbitary headers
-			http_request( connection conn );
+			http_request( connection conn, size_t max_headers = 64 );
 			std::string action;
 			std::string location;
 			std::string version;

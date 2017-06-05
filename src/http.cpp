@@ -18,7 +18,7 @@ bool is_valid_prelude( std::string action, std::string location, std::string ver
 	return (action == "GET" || action == "POST" || action == "HEAD");
 }
 
-http_request::http_request( connection conn ){
+http_request::http_request( connection conn, size_t max_headers ){
 	std::string temp = conn.recv_line();
 	std::stringstream ss(temp);
 
@@ -47,7 +47,8 @@ http_request::http_request( connection conn ){
 
 	temp = conn.recv_line();
 
-	while ( temp != "" ) {
+	//while ( temp != "" ) {
+	for ( size_t n = 0; temp != "" && n <= max_headers; n++ ){
 		std::stringstream line(temp);
 		std::string key, value;
 
@@ -60,6 +61,10 @@ http_request::http_request( connection conn ){
 			std::cout << "[phead] invalid header recieved, TODO: error" << std::endl;
 			std::cout << "[phead] key: " << key << ", value: " << value << std::endl;
 			throw http_error( HTTP_400_BAD_REQUEST );
+		}
+
+		if ( n == max_headers ){
+			throw http_error( HTTP_413_ENTITY_TOO_LARGE );
 		}
 
 		//std::cout << "[phead] key: " << key << ", value: " << value << std::endl;
@@ -105,10 +110,11 @@ std::string nihttpd::status_string( unsigned status ){
 
 	// TODO: find a better way to do this
 	switch ( status ){
-		case HTTP_200_OK:          return "200 OK";
-		case HTTP_400_BAD_REQUEST: return "400 Bad Request";
-		case HTTP_403_FORBIDDEN:   return "403 Forbidden";
-		case HTTP_404_NOT_FOUND:   return "404 Not Found";
+		case HTTP_200_OK:               return "200 OK";
+		case HTTP_400_BAD_REQUEST:      return "400 Bad Request";
+		case HTTP_403_FORBIDDEN:        return "403 Forbidden";
+		case HTTP_404_NOT_FOUND:        return "404 Not Found";
+		case HTTP_413_ENTITY_TOO_LARGE: return "413 Request Entity Too Large";
 		default: return std::to_string( status ) + "TODO implement this";
 	}
 }
