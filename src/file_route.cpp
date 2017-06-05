@@ -203,6 +203,11 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 		bool is_dir = path_is_directory( local_path );
 		std::string type = is_dir? "directory" : get_content_type( local_path );
 
+		// append a trailing slash if the entry is a directory
+		if ( is_dir ){
+			name += "/";
+		}
+
 		ret +=
 			"<tr>"
 				"<td>" + symbol + "</td>"
