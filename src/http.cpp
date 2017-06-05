@@ -26,7 +26,7 @@ http_request::http_request( connection conn ){
 	std::getline( ss, location, ' ' );
 	std::getline( ss, version );
 
-	//std::cout << "[phead] head: " << temp << std::endl;
+	std::cout << "[phead] > head: " << temp << std::endl;
 
 	/*
 	std::cout << "[parse] action:   \"" << action <<   "\"" << std::endl;

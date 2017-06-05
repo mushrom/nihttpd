@@ -118,12 +118,11 @@ void connection::send_data( const std::vector<char> &vec ){
 	}
 }
 
-std::string connection::recv_line( void ){
+std::string connection::recv_line( size_t max_length ){
 	std::string ret = "";
 	char c = recv_char();
 
-	// TODO: maximum line length
-	while ( c != '\r' && c != '\n' ){
+	for ( size_t n = 0; n < max_length && c != '\r' && c != '\n'; n++ ){
 		ret += c;
 		c = recv_char();
 	}
