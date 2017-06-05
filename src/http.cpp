@@ -41,6 +41,10 @@ http_request::http_request( connection conn ){
 	location   = strip_get_fields( location );
 	location   = url_decode( location );
 
+	for ( const auto &x : get_params ){
+		std::cout << "    GET > " << x.first << ": " << x.second << std::endl;
+	}
+
 	temp = conn.recv_line();
 
 	while ( temp != "" ) {
@@ -228,8 +232,23 @@ key_val_t nihttpd::parse_get_fields( const std::string &location ){
 	std::string args = location.substr( get_start + 1, std::string::npos );
 	// TODO: extract fields
 
-	key_val_t ret;
-	ret["asdf"] = url_decode(args);
+	key_val_t ret = {};
+	size_t field_start = 0;
+	size_t field_end = 0;
+
+	while ( field_end != std::string::npos ){
+		field_end = args.find("&", field_start);
+
+		std::string field = args.substr(field_start, field_end - field_start);
+		std::stringstream ss(field);
+		std::string key, value;
+
+		std::getline( ss, key, '=' );
+		std::getline( ss, value );
+
+		ret[url_decode(key)] = url_decode(value);
+		field_start = field_end + 1;
+	}
 
 	return ret;
 }
