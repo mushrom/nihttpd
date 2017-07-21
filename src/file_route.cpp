@@ -22,6 +22,9 @@ static std::map<std::string, std::string> content_types = {
 	{ ".ogg",  "audio/ogg" },
 	{ ".mkv",  "video/x-matroska" },
 	{ ".pdf",  "application/pdf" },
+	{ ".zip",  "application/zip" },
+	{ ".rar",  "application/x-rar-compressed" },
+	{ ".gz",   "application/octet-stream" },
 };
 
 static unsigned get_file_size( std::ifstream &stream ){
@@ -163,26 +166,47 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 			"<meta charset=\"UTF-8\">"
 			"<style>"
 				"body {"
+					"margin: 0;"
 					"margin-left: auto;"
 					"margin-right: auto;"
 					"max-width: 800px;"
 					"font-family: sans;"
-					"padding: 5px;"
 				"}"
-				"table { width: 100%; margin: 0; padding: 0; }"
-				"tr, td { border-top: 1px dotted lightgrey; }"
+				"a { color: #222; text-decoration: none; }"
+				".diritem { width: 100%; }"
+				".diritem:hover { background-color: #eee; }"
+				".diritem:active { background-color: lightorange; }"
+				".diritem b { font-weight: 500; }"
+				".diricon {"
+					"margin-left: auto;"
+					"margin-right: auto;"
+					"min-width: 25px;"
+					"text-align: center;"
+					"padding-left: 10px;"
+					"padding-right: 10px;"
+				"}"
+				"table { width: 100%; margin: 0; padding: 0; border: none; }"
+				"tr, td { border-bottom: 1px dotted lightgrey; }"
+				"td:first-child { width: 50px; }"
 				".table_head { background-color: #fee; }"
+				".list_head {"
+					"background-color: #eee;"
+					"border-bottom: 2px solid darkorange;"
+					"padding: 15px;"
+				"}"
+				".footer {"
+					"background-color: #eee;"
+					"padding: 5px;"
+					"padding-left: 15px;"
+					"border-top: 2px solid darkorange;"
+				"}"
 			"</style>"
 		"</head>"
 		"<body>"
 			"<div class=\"list_head\">"
-			"<h3>Index of " + sanitize(req.location) + "</h3></div>"
-			"<table>"
-				"<tr class=\"table_head\">"
-					"<td></td>"
-					"<td><strong>name</strong></td>"
-					"<td><strong>size</strong></td>"
-				"</tr>"
+			"<b>Index of " + sanitize(req.location) + "</b>"
+			"</div>"
+			"<table cellspacing=\"0\" cellpadding=\"0\">"
 		;
 
 
@@ -193,12 +217,29 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 		throw http_error( HTTP_404_NOT_FOUND );
 	}
 
+	ret += "<tr class=diritem>"
+				"<td><div class=\"diricon\">" + get_file_icon("/") + "</div></td>"
+				"<td>"
+					"<a href=\"" + url_encode_path(dirpath(req.location)) + ".." + "\"><div>"
+							"<b>..</b>"
+							"<br />"
+							"<small>directory</small>"
+					"</div></a>"
+				"</td>"
+				"<td></td>"
+			"</tr>";
+
 	while (( ent = readdir( dir ))){
 		std::string name( ent->d_name );
 		std::string temp = dirpath(req.location);
 		std::string local_path = dirpath(path) + name;
 		std::string sizestr = gen_human_size( get_file_stat_size( local_path ));
 		std::string symbol = get_file_icon( local_path );
+
+		// don't generate another ".." entry, or a pointless "." entry
+		if ( name == "." || name == ".." ){
+			continue;
+		}
 
 		bool is_dir = path_is_directory( local_path );
 		std::string type = is_dir? "directory" : get_content_type( local_path );
@@ -209,13 +250,14 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 		}
 
 		ret +=
-			"<tr>"
-				"<td>" + symbol + "</td>"
+			"<tr class=diritem>"
+				"<td><div class=\"diricon\">" + symbol + "</div></td>"
 				"<td>"
-					"<a href=\"" + url_encode_path(temp) + url_encode_path(name) + "\">"
-						+ sanitize(name) + "</a>"
-					"<br />"
-					"<small>" + type + "</small>"
+					"<a href=\"" + url_encode_path(temp) + url_encode_path(name) + "\"><div>"
+							"<b>" + sanitize(name) + "</b>"
+							"<br />"
+							"<small>" + type + "</small>"
+					"</div></a>"
 				"</td>"
 				"<td><code>" + sizestr + "</code></td>"
 			"</tr>"
@@ -225,8 +267,9 @@ static std::string gen_dir_listing( http_request req, std::string path ){
 	closedir( dir );
 
 	ret += "</table>";
-	ret += "<hr /><small>nihttpd 0.0.1</small>";
-	ret += "</body></html>";
+	ret += "<div class=\"footer\">"
+				"<small>nihttpd 0.0.1</small>"
+			"</div></body></html>";
 
 	return ret;
 }
