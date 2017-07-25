@@ -31,6 +31,12 @@ static std::string gen_page( http_request request ){
 		heads += "<code>" + s.first + ":" + s.second + "</code><br />";
 	}
 
+	std::string params = "";
+	for ( const auto &s : request.get_params ){
+		params += "<code>" + s.first +
+		       " = \"" + s.second + "\"</code><br />";
+	}
+
 	std::string clients = "";
 	for ( const auto &client : accessed_list ){
 		clients += "<code>" + client.access_time + ", "
@@ -53,6 +59,8 @@ static std::string gen_page( http_request request ){
 		"version: "  + request.version + "<br/>"
 		"<hr />"
 		"<h4>headers</h4>" + heads + "<br />"
+		"<hr />"
+		"<h4>parameters</h4>" + params + "<br />"
 		"<hr />"
 		"<h4>misc. info</h4>"
 		"this page rendered: " + std::to_string( ++rendered ) + " times<br />"
