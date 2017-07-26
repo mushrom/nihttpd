@@ -21,11 +21,16 @@ namespace nihttpd {
 		public:
 			// TODO: add another constructor to construct arbitary headers
 			http_request( connection conn, size_t max_headers = 64 );
+			void parse_headers( connection &conn, size_t max_headers );
+			void parse_body( connection &conn, size_t max_size = 0x2000 );
+
 			std::string action;
 			std::string location;
 			std::string version;
+			std::string body;
 			key_val_t   headers;
 			key_val_t   get_params;
+			key_val_t   post_params;
 	};
 
 	class http_response {
@@ -50,9 +55,11 @@ namespace nihttpd {
 	std::string url_decode( const std::string &str );
 	std::string url_encode_path( const std::string &str );
 	std::string sanitize( const std::string &str );
+	std::string find_get_fields( const std::string &location );
 	bool        path_below_root( const std::string &str );
-	key_val_t   parse_get_fields( const std::string &location );
+	size_t      get_fields_offset( const std::string &location );
 	std::string strip_get_fields( const std::string &location );
+	key_val_t   parse_fields( const std::string &args );
 }
 
 #endif

@@ -37,17 +37,23 @@ http_request::http_request( connection conn, size_t max_headers ){
 		throw http_error( HTTP_400_BAD_REQUEST );
 	}
 
-	get_params = parse_get_fields( location );
+	parse_headers( conn, max_headers );
+	parse_body( conn );
+
+	get_params = parse_fields( find_get_fields( location ));
+
+	//get_params = parse_fields( find_get_fields( location ));
 	location   = strip_get_fields( location );
 	location   = url_decode( location );
 
 	for ( const auto &x : get_params ){
 		std::cout << "    GET > " << x.first << ": " << x.second << std::endl;
 	}
+}
 
-	temp = conn.recv_line();
+void http_request::parse_headers( connection &conn, size_t max_headers ){
+	std::string temp = conn.recv_line();
 
-	//while ( temp != "" ) {
 	for ( size_t n = 0; temp != "" && n <= max_headers; n++ ){
 		std::stringstream line(temp);
 		std::string key, value;
@@ -67,11 +73,35 @@ http_request::http_request( connection conn, size_t max_headers ){
 			throw http_error( HTTP_413_ENTITY_TOO_LARGE );
 		}
 
-		//std::cout << "[phead] key: " << key << ", value: " << value << std::endl;
-
 		headers[key] = value;
 		temp = conn.recv_line();
+		std::cout << "[phead] asdf: " << temp << std::endl;
 	};
+}
+
+void http_request::parse_body( connection &conn, size_t max_size ){
+	std::cout << "[pbody] action: " << action << std::endl;
+	std::cout << "[pbody] type: " << headers["Content-Type"] << std::endl;
+
+	if ( action != "POST"
+	     || headers["Content-Type"] != "application/x-www-form-urlencoded" )
+	{
+		return;
+	}
+
+	size_t n = atoi( headers["Content-Length"].c_str());
+
+	if ( n >= max_size ){
+		throw http_error( HTTP_413_ENTITY_TOO_LARGE );
+	}
+
+	std::cout << "[pbody] asdf: " << std::to_string(n) << std::endl;
+	std::string temp = conn.recieve(n);
+
+	std::cout << "[pbody] body: " << temp << std::endl;
+
+	body = url_decode( temp );
+	post_params = parse_fields( body );
 }
 
 void http_response::send_to( connection conn ){
@@ -227,15 +257,22 @@ bool nihttpd::path_below_root( const std::string &str ){
 	return true;
 }
 
-// NOTE: This must be called before the path is url decoded!
-key_val_t nihttpd::parse_get_fields( const std::string &location ){
+size_t nihttpd::get_fields_offset( const std::string &location ){
+	return location.find("?");
+}
+
+std::string nihttpd::find_get_fields( const std::string &location ){
 	size_t get_start = location.find("?");
 
 	if ( get_start == std::string::npos ){
-		return {};
+		return "";
 	}
 
-	std::string args = location.substr( get_start + 1, std::string::npos );
+	return location.substr( get_start + 1, std::string::npos );
+}
+
+// NOTE: This must be called before the path is url decoded!
+key_val_t nihttpd::parse_fields( const std::string &args ){
 	// TODO: extract fields
 
 	key_val_t ret = {};

@@ -31,11 +31,18 @@ static std::string gen_page( http_request request ){
 		heads += "<code>" + s.first + ":" + s.second + "</code><br />";
 	}
 
-	std::string params = "";
+	std::string get_params = "";
 	for ( const auto &s : request.get_params ){
-		params += "<code>" + s.first +
+		get_params += "<code>" + s.first +
 		       " = \"" + s.second + "\"</code><br />";
 	}
+
+	std::string post_params = "";
+	for ( const auto &s : request.post_params ){
+		post_params += "<code>" + s.first +
+		       " = \"" + s.second + "\"</code><br />";
+	}
+
 
 	std::string clients = "";
 	for ( const auto &client : accessed_list ){
@@ -60,10 +67,16 @@ static std::string gen_page( http_request request ){
 		"<hr />"
 		"<h4>headers</h4>" + heads + "<br />"
 		"<hr />"
-		"<h4>parameters</h4>" + params + "<br />"
+		"<h4>GET parameters</h4>" + get_params + "<br />"
+		"<hr />"
+		"<h4>POST parameters</h4>" + post_params + "<br />"
 		"<hr />"
 		"<h4>misc. info</h4>"
 		"this page rendered: " + std::to_string( ++rendered ) + " times<br />"
+		"<form action=\"" + request.location + "?foo=bar+baz\" method=\"post\">"
+			"<input name=\"stuff\" type=\"search\">"
+			"<input name=\"foobar\" type=\"submit\">"
+		"</form>"
 		"accessed by: <br />" + clients +
 		"</body></html>"
 		;

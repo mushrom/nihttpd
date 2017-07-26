@@ -137,6 +137,24 @@ std::string connection::recv_line( size_t max_length ){
 	return ret;
 }
 
+std::string connection::recieve( size_t max_length ){
+	std::string ret = "";
+	char *buf = new char[max_length + 1];
+
+	int n = recv( sock, buf, max_length, 0 );
+
+	if ( n > 0 ){
+		buf[n] = 0;
+		std::string ret(buf);
+		delete buf;
+		return ret;
+	}
+
+	delete buf;
+	return "";
+}
+
+
 std::string connection::client_ip( void ){
 	char buf[INET6_ADDRSTRLEN];
 	struct sockaddr_in info;

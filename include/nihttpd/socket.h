@@ -12,6 +12,7 @@ namespace nihttpd {
 
 			char recv_char( void );
 			std::string recv_line( size_t max_length = 0x1000 );
+			std::string recieve( size_t max_length = 0x1000 );
 
 			void send_char( char c );
 			void send_line( const std::string &line );
