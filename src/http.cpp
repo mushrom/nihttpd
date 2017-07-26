@@ -79,14 +79,26 @@ void http_request::parse_headers( connection &conn, size_t max_headers ){
 	};
 }
 
+bool http_request::valid_post( void ){
+	auto contains = [](auto m, auto key){ return m.find(key) != m.end(); };
+
+	return action == "POST"
+		&& contains(headers, "Content-Type")
+		&& contains(headers, "Content-Length")
+		&& headers["Content-Type"] == "application/x-www-form-urlencoded"
+		;
+}
+
 void http_request::parse_body( connection &conn, size_t max_size ){
 	std::cout << "[pbody] action: " << action << std::endl;
 	std::cout << "[pbody] type: " << headers["Content-Type"] << std::endl;
 
-	if ( action != "POST"
-	     || headers["Content-Type"] != "application/x-www-form-urlencoded" )
-	{
+	if ( action != "POST" ){
 		return;
+	}
+
+	if ( !valid_post() ){
+		throw http_error( HTTP_400_BAD_REQUEST );
 	}
 
 	size_t n = atoi( headers["Content-Length"].c_str());

@@ -23,6 +23,7 @@ namespace nihttpd {
 			http_request( connection conn, size_t max_headers = 64 );
 			void parse_headers( connection &conn, size_t max_headers );
 			void parse_body( connection &conn, size_t max_size = 0x2000 );
+			bool valid_post( void );
 
 			std::string action;
 			std::string location;
