@@ -3,7 +3,6 @@
 #include <nihttpd/http.h>
 #include <iostream>
 
-
 using namespace nihttpd;
 
 static http_response gen_error_page( http_error err ){
@@ -27,32 +26,57 @@ static http_response gen_error_page( http_error err ){
 	return ret;
 }
 
-void server::worker( connection conn ){
-	try {
-		http_request request( conn );
-		router *route = find_route( request.location );
-
-		log( urgency::normal,
-		     "  " + conn.client_ip() +
-		     ": " + request.action + " " + request.location );
-
-		if ( route == nullptr ){
-			throw http_error( HTTP_404_NOT_FOUND );
-		}
-
-		route->dispatch( request, conn );
-
-	} catch ( const http_error &err ){
-		log( urgency::normal,
-		     "  " + conn.client_ip() + ": request aborted with error: "
-		     + status_string( err.error_num ));
-
-		http_response res = gen_error_page( err );
-		res.send_to( conn );
+connection server::wait_for_connection(void){
+	{
+		// notify master thread, in case it's waiting because all workers are busy
+		std::unique_lock<std::mutex> slock(listen_lock);
+		available_threads++;
 	}
 
-	log( urgency::debug, "  closing connection" );
-	conn.disconnect();
+	master.notify_one();
+
+	{
+		std::unique_lock<std::mutex> slock(listen_lock);
+		waiter.wait(slock, [this]{ return pending_connects.size() > 0; });
+
+		connection ret = pending_connects.front();
+		pending_connects.pop_front();
+		available_threads--;
+
+		return ret;
+	}
+}
+
+void server::worker(void){
+	while (true){
+		connection conn = wait_for_connection();
+
+		try {
+			http_request request( conn );
+			router *route = find_route( request.location );
+
+			log( urgency::normal,
+					"  " + conn.client_ip() +
+					": " + request.action + " " + request.location );
+
+			if ( route == nullptr ){
+				throw http_error( HTTP_404_NOT_FOUND );
+			}
+
+			route->dispatch( request, conn );
+
+		} catch ( const http_error &err ){
+			log( urgency::normal,
+					"  " + conn.client_ip() + ": request aborted with error: "
+					+ status_string( err.error_num ));
+
+			http_response res = gen_error_page( err );
+			res.send_to( conn );
+		}
+
+		log( urgency::debug, "  closing connection" );
+		conn.disconnect();
+	}
 }
 
 server::server( ){
@@ -64,6 +88,13 @@ void server::start( const std::string &host, const std::string &port ){
 	try {
 		sock = new listener( host, port );
 		self = std::thread( &server::run, this );
+
+		unsigned concurrency = 2 * (std::thread::hardware_concurrency() + 1);
+
+		for (unsigned i = 0; i < concurrency; i++){
+			workers.push_front(std::thread(&server::worker, this));
+			log(urgency::debug, "started worker thread " + std::to_string(i));
+		}
 
 	} catch ( const std::string &msg ){
 		log( urgency::high, "exception in listener: " + msg );
@@ -84,8 +115,26 @@ void server::run( void ){
 		connection meh = sock->accept_client();
 		log( urgency::normal, "connection from " + meh.client_ip() );
 
-		std::thread thr( &server::worker, this, meh );
-		thr.detach();
+		{
+			log( urgency::debug, "trying to queue " + meh.client_ip() );
+			std::lock_guard<std::mutex> slock(listen_lock);
+			pending_connects.push_back(meh);
+			log( urgency::debug, "queued " + meh.client_ip() );
+		}
+
+		log( urgency::debug, "notifying " + meh.client_ip() );
+
+		{
+			std::unique_lock<std::mutex> slock(listen_lock);
+
+			if (available_threads == 0) {
+				log(urgency::debug, "no available worker threads, waiting...");
+				master.wait(slock, [this]{ return available_threads > 0; });
+				log(urgency::debug, "woke");
+			}
+		}
+
+		waiter.notify_one();
 	}
 }
 

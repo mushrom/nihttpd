@@ -6,6 +6,8 @@
 #include <thread>
 #include <list>
 #include <memory>
+#include <mutex>
+#include <condition_variable>
 
 namespace nihttpd {
 	enum class urgency {
@@ -28,14 +30,22 @@ namespace nihttpd {
 			void add_route( std::unique_ptr<router> rut );
 
 		private:
-			void run( void );
-			void worker( connection conn );
+			void run(void);
+			void worker(void);
+			connection wait_for_connection(void);
 			router *find_route( std::string location );
 
 			bool running;
 			listener *sock;
 			std::list<std::unique_ptr<router>> routes;
+			std::list<std::thread> workers;
 			std::thread self;
+
+			std::mutex listen_lock;
+			std::condition_variable waiter;
+			std::condition_variable master;
+			std::list<connection> pending_connects;
+			unsigned available_threads = 0;
 	};
 
 	class router {
